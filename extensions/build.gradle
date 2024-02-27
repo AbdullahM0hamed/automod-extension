@@ -1,0 +1,49 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+import java.io.File
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled false
+    }
+
+    libraryVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "automodext.zip"
+        }
+
+        //variant.assembleProvider.get().finalizedBy(makeDex)
+    }
+
+    //task makeDex {
+        //def extLoc = new File(project.projectDir.getAbsolutePath() + "/build/outputs/apk/debug/automodext.zip")
+        //if (!extLoc.exists()) {
+            //extLoc = new File(extLoc.getAbsolutePath().replace("debug", "release"))
+            //copy {
+                //from zipTree(extLoc) { include
+            //}
+        //}
+    //}
+}
+
+dependencies {
+    implementation project(":automod")
+    compileOnly 'top.canyie.pine:core:0.2.8'
+}
+
+git {
+    implementation "https://github.com/AbdullahM0hamed/automod", {
+        name 'automod'
+	commit '3cafc640db473e1a3599087053df6751d1679dd5'
+	projectPath '/automod'
+    }
+}
