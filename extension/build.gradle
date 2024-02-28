@@ -1,0 +1,74 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+import java.io.File
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+
+    lintOptions {
+        abortOnError false
+    }
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled false
+    }
+
+    libraryVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "automodext.zip"
+        }
+
+        variant.assembleProvider.get().finalizedBy(makeDex)
+    }
+
+    task makeDex {
+        doFirst {
+            def extLoc = new File(project.projectDir.getAbsolutePath() + "/build/outputs/aar/automodext.zip")
+            def buildFolder = new File(project.projectDir.getAbsolutePath() + "/build")
+
+            copy {
+                from zipTree(extLoc)
+                into buildFolder
+            }
+            def d8 = sdkDirectory.getPath() + '/build-tools/' + buildToolsVersion + '/lib/d8.jar'
+            def build = project.projectDir.getAbsolutePath() + '/build/'
+            javaexec {
+                main = 'com.android.tools.r8.D8'
+                classpath = fileTree(d8)
+                args = ['--release', '--output', build + project.projectDir.getName() + '.zip', build + 'classes.jar']
+            }
+        }
+    }
+
+    tasks.build.finalizedBy(makeDex)
+}
+
+dependencies {
+    //implementation project(":automod")
+    compileOnly files(project(":automod").projectDir.getAbsolutePath() + "/build/updated.jar")
+}
+
+git {
+    implementation "https://github.com/AbdullahM0hamed/automod", {
+        name 'automod'
+        commit '3cafc640db473e1a3599087053df6751d1679dd5'
+        projectPath '/automod'
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        freeCompilerArgs = ["-Xskip-metadata-version-check"]
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn project(":automod").tasks.automod
+}
