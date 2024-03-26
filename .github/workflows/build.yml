@@ -1,0 +1,53 @@
+name: Build
+
+concurrency:
+  group: "build"
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - '*.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          path: "src"
+
+      - name: Checkout builds
+        uses: actions/checkout@master
+        with:
+          ref: "builds"
+          path: "builds"
+
+      - name: Clean old builds
+        run: rm $GITHUB_WORKSPACE/builds/*.amd
+
+      - name: Setup java
+        uses: actions/setup-java@v1
+
+      - name: Setup Android SDK
+        uses: actions/setup-android@v2
+
+      - name: Build Extensions
+        run: |
+          cd $GITHUB_WORKSPACE/src
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          cp **/build/*.amd $GITHUB_WORKSPACE/builds
+
+      - name: Push builds
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git commit --amend -m "Build $GITHUB_SHA" || exit 0
+          git push --force
