@@ -3,10 +3,13 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "29.0.3"
+    buildToolsVersion "30.0.3"
 
     lintOptions {
         abortOnError false
@@ -44,6 +47,31 @@ android {
                 classpath = fileTree(d8)
                 args = ['--release', '--output', build + project.projectDir.getName() + '.zip', build + 'classes.jar']
             }
+
+            def manifest = new File(project.projectDir.getAbsolutePath() + "/src/main/manifest.json")
+            if (manifest.exists()) {
+                def extension = build + project.projectDir.getName() + ".zip"
+                def entries = (new ZipFile(extension)).entries()
+                try (ZipOutputStream zOut = new ZipOutputStream(new FileOutputStream(extension))) {
+                    while (entries.hasMoreElements()) {
+                        ZipEntry e = entries.nextElement()
+                        zOut.putNextEntry(e)
+                        zOut.closeEntry()
+                    }
+                    def entry = new ZipEntry(manifest.getName())
+                    zOut.putNextEntry(entry)
+                    byte[] buffer = new byte[4096]
+                    int bytesRead
+                    try (FileInputStream input = new FileInputStream(manifest)) {
+                        while ((bytesRead = input.read(buffer)) != -1) {
+                            zOut.write(buffer, 0, bytesRead)
+                        }
+                    }
+                    zOut.closeEntry()
+                }
+                def newName = new File(build + project.projectDir.getName() + ".amd")
+                (new File(extension)).renameTo(newName)
+            }
         }
     }
 
@@ -51,14 +79,13 @@ android {
 }
 
 dependencies {
-    //implementation project(":automod")
     compileOnly files(project(":automod").projectDir.getAbsolutePath() + "/build/updated.jar")
 }
 
 git {
     implementation "https://github.com/AbdullahM0hamed/automod", {
         name 'automod'
-        commit '3cafc640db473e1a3599087053df6751d1679dd5'
+        commit '0f470de0cee8bc219815745d1ab86619779d5065'
         projectPath '/automod'
     }
 }
